@@ -29,6 +29,9 @@ sed_inplace 's/"number": 0/"number": '"$NEXT_BLOCK_NUMBER"'/' ./config-op/rollup
 cp ./config-op/genesis.json ./config-op/genesis-rpc.json
 sed_inplace 's/"number": "0x0"/"number": "'"$NEXT_BLOCK_NUMBER_HEX"'"/' ./config-op/genesis-rpc.json
 
+jq '.alloc["e09CD061594aC075EA8899ECe8BFAAD549e792FD"].balance = "0x446c3b15f9926687d2c40534fdb564000000000000"' config-op/genesis.json > tmp.json
+mv tmp.json config-op/genesis.json
+
 # Extract contract addresses from state.json and update .env file
 echo "🔧 Extracting contract addresses from state.json..."
 PWD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -113,16 +116,22 @@ fi
 OP_GETH_DATADIR="$(pwd)/data/op-geth-seq"
 rm -rf "$OP_GETH_DATADIR"
 mkdir -p "$OP_GETH_DATADIR"
-docker compose run --no-deps --rm \
-  -v "$(pwd)/$CONFIG_DIR/genesis.json:/genesis.json" \
-  op-geth-seq \
+
+docker compose run --no-deps \
+  -v "$(pwd)/$CONFIG_DIR:/config" \
+  -v "/data/xlayer_uploads/erigon-data-split/chaindata:/chaindata" \
+  op-geth-migrate-seq \
   --datadir "/datadir" \
   --gcmode=archive \
   --db.engine=$DB_ENGINE \
   --log.format json \
-  init \
+  migrate \
   --state.scheme=hash \
-  /genesis.json 2>&1 | tee init.log
+  --ignore-smt-verify \
+  --no-verify \
+  --chaindata=/chaindata \
+  --output /config/genesis.json \
+  /config/genesis.json 2>&1 | tee init.log
 
 # Start op-geth-seq to get the block hash at FORK_BLOCK+1
 echo "🚀 Starting op-geth-seq to get block hash at FORK_BLOCK+1..."

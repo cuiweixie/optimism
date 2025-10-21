@@ -820,3 +820,51 @@ services:
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
+  op-geth-migrate-seq:
+    image: "${OP_GETH_MIGRATE_IMAGE_TAG}"
+    container_name: op-geth-migrate-seq
+    entrypoint: geth
+    volumes:
+      - ./data/op-geth-seq:/datadir
+      - ./config-op/jwt.txt:/jwt.txt
+    ports:
+      - "9123:8545"
+      - "7546:7546"
+      - "8552:8552"
+      - "30303:30303"
+      - "30303:30303/udp"
+    command:
+      - --datadir
+      - /datadir
+      - --db.engine=${DB_ENGINE}
+      - --http
+      - --http.corsdomain=*
+      - --http.vhosts=*
+      - --http.port=8545
+      - --http.addr=0.0.0.0
+      - --http.api=web3,debug,eth,txpool,net,engine,miner
+      - --ws
+      - --ws.addr=0.0.0.0
+      - --ws.port=7546
+      - --ws.origins=*
+      - --ws.api=debug,eth,txpool,net,engine
+      - --syncmode=full
+      - --gcmode=archive
+      - --nodiscover
+      - --maxpeers=0
+      - --networkid=901
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.port=8552
+      - --authrpc.jwtsecret=/jwt.txt
+      - --rollup.disabletxpoolgossip=true
+      - --txpool.globalslots=500000
+      - --txpool.globalqueue=100000
+      - --txpool.accountslots=50000
+      - --txpool.accountqueue=10000
+      - --cache=8192
+      - --cache.database=50
+      - --cache.trie=30
+      - --cache.gc=20
+      - --cache.snapshot=512
